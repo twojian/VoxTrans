@@ -1,8 +1,11 @@
 import json
 import os
 import importlib.util
+import dataclasses
 from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Type, TypeVar
+
+T = TypeVar("T")
 
 
 def _is_torch_available() -> bool:
@@ -19,11 +22,19 @@ def get_available_device() -> str:
         import torch
     except ImportError:
         return "cpu"
+
     if torch.cuda.is_available():
         return "cuda"
     if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         return "mps"
     return "cpu"
+
+
+def _safe_from_dict(cls: Type[T], data: Dict[str, Any]) -> T:
+    """从 dict 构造 dataclass，忽略未知字段，兼容旧版 config.json。"""
+    known_fields = {f.name for f in dataclasses.fields(cls)}
+    filtered = {k: v for k, v in data.items() if k in known_fields}
+    return cls(**filtered)
 
 
 @dataclass
@@ -49,9 +60,9 @@ class VADConfig:
 @dataclass
 class ASRConfig:
     engine: str = "faster-whisper"  # "faster-whisper" | "whisper-api"
-    model_size: str = "base"  # tiny / base / small / medium / large
+    model_size: str = "base"        # tiny / base / small / medium / large
     language: str = "auto"
-    device: str = "auto"  # auto / cuda / cpu
+    device: str = "auto"            # auto / cuda / cpu
     compute_type: str = "int8"
     beam_size: int = 3
     # Whisper API
@@ -61,7 +72,7 @@ class ASRConfig:
 
 @dataclass
 class TranslationConfig:
-    engine: str = "llm-api"  # "llm-api" | "local"
+    engine: str = "llm-api"         # "llm-api" | "local"
     target_language: str = "zh"
     # LLM API
     api_key: str = ""
@@ -141,22 +152,27 @@ class ConfigManager:
     def _load_config(self):
         if not os.path.exists(self._config_file):
             return
+
         try:
             with open(self._config_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
+
+            # 使用 _safe_from_dict 过滤未知字段，兼容旧版 config.json
             if "audio" in data:
-                self._config.audio = AudioConfig(**data["audio"])
+                self._config.audio = _safe_from_dict(AudioConfig, data["audio"])
             if "vad" in data:
-                self._config.vad = VADConfig(**data["vad"])
+                self._config.vad = _safe_from_dict(VADConfig, data["vad"])
             if "asr" in data:
-                self._config.asr = ASRConfig(**data["asr"])
+                self._config.asr = _safe_from_dict(ASRConfig, data["asr"])
             if "translation" in data:
-                self._config.translation = TranslationConfig(**data["translation"])
+                self._config.translation = _safe_from_dict(TranslationConfig, data["translation"])
             if "subtitle" in data:
-                self._config.subtitle = SubtitleConfig(**data["subtitle"])
+                self._config.subtitle = _safe_from_dict(SubtitleConfig, data["subtitle"])
+
             for key in ("output_dir", "log_level"):
                 if key in data:
                     setattr(self._config, key, data[key])
+
         except Exception as e:
             print(f"Failed to load config: {e}, using defaults")
 
