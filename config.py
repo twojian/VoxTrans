@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import importlib.util
 import dataclasses
@@ -6,6 +7,8 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, Type, TypeVar
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 def _is_torch_available() -> bool:
@@ -173,8 +176,10 @@ class ConfigManager:
                 if key in data:
                     setattr(self._config, key, data[key])
 
+            logger.debug("Config loaded from %s", self._config_file)
+
         except Exception as e:
-            print(f"Failed to load config: {e}, using defaults")
+            logger.warning("Failed to load config: %s, using defaults", e)
 
         self._resolve_device()
 
@@ -200,8 +205,9 @@ class ConfigManager:
             }
             with open(self._config_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
+            logger.debug("Config saved to %s", self._config_file)
         except Exception as e:
-            print(f"Failed to save config: {e}")
+            logger.error("Failed to save config: %s", e)
 
     def reset_to_default(self):
         self._config = AppConfig()
