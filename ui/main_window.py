@@ -16,35 +16,35 @@ from pipeline.interpreter import InterpreterPipeline
 logger = logging.getLogger(__name__)
 
 LANGUAGES = [
-    ("auto", "Auto Detect"),
-    ("en", "English"),
-    ("zh", "Chinese"),
-    ("ja", "Japanese"),
-    ("ko", "Korean"),
-    ("fr", "French"),
-    ("de", "German"),
-    ("es", "Spanish"),
-    ("ru", "Russian"),
+    ("auto", "自动检测"),
+    ("en", "英语"),
+    ("zh", "中文"),
+    ("ja", "日语"),
+    ("ko", "韩语"),
+    ("fr", "法语"),
+    ("de", "德语"),
+    ("es", "西班牙语"),
+    ("ru", "俄语"),
 ]
 
 TARGET_LANGUAGES = [
-    ("zh", "Chinese"),
-    ("en", "English"),
-    ("ja", "Japanese"),
-    ("ko", "Korean"),
+    ("zh", "中文"),
+    ("en", "英语"),
+    ("ja", "日语"),
+    ("ko", "韩语"),
 ]
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("VoxTrans - AI Simultaneous Interpreter")
+        self.setWindowTitle("VoxTrans - AI 同声传译助手")
         self.setMinimumSize(700, 500)
         self.resize(900, 600)
 
         self.pipeline = InterpreterPipeline()
         self.floating_window = None
-        self._history = []  # [(original, translated, timestamp)]
+        self._history = []
 
         self._setup_menu()
         self._setup_ui()
@@ -56,22 +56,22 @@ class MainWindow(QMainWindow):
     def _setup_menu(self):
         menubar = self.menuBar()
 
-        file_menu = menubar.addMenu("File")
-        export_act = QAction("Export Subtitles...", self)
+        file_menu = menubar.addMenu("文件")
+        export_act = QAction("导出字幕...", self)
         export_act.triggered.connect(self._export_subtitles)
         file_menu.addAction(export_act)
         file_menu.addSeparator()
-        quit_act = QAction("Quit", self)
+        quit_act = QAction("退出", self)
         quit_act.triggered.connect(self.close)
         file_menu.addAction(quit_act)
 
-        view_menu = menubar.addMenu("View")
-        float_act = QAction("Show Floating Subtitle", self)
+        view_menu = menubar.addMenu("视图")
+        float_act = QAction("悬浮字幕窗口", self)
         float_act.triggered.connect(self._toggle_floating)
         view_menu.addAction(float_act)
 
-        settings_menu = menubar.addMenu("Settings")
-        settings_act = QAction("Preferences...", self)
+        settings_menu = menubar.addMenu("设置")
+        settings_act = QAction("偏好设置...", self)
         settings_act.triggered.connect(self._open_settings)
         settings_menu.addAction(settings_act)
 
@@ -80,26 +80,25 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
 
-        # --- Control bar ---
-        control_group = QGroupBox("Controls")
+        control_group = QGroupBox("控制面板")
         control_layout = QHBoxLayout(control_group)
 
-        control_layout.addWidget(QLabel("Audio:"))
+        control_layout.addWidget(QLabel("音频源:"))
         self.device_combo = QComboBox()
         self.device_combo.setMinimumWidth(200)
         control_layout.addWidget(self.device_combo)
 
-        self.refresh_btn = QPushButton("Refresh")
+        self.refresh_btn = QPushButton("刷新")
         self.refresh_btn.clicked.connect(self._refresh_devices)
         control_layout.addWidget(self.refresh_btn)
 
-        control_layout.addWidget(QLabel("From:"))
+        control_layout.addWidget(QLabel("源语言:"))
         self.source_lang_combo = QComboBox()
         for code, name in LANGUAGES:
             self.source_lang_combo.addItem(name, code)
         control_layout.addWidget(self.source_lang_combo)
 
-        control_layout.addWidget(QLabel("To:"))
+        control_layout.addWidget(QLabel("目标语言:"))
         self.target_lang_combo = QComboBox()
         for code, name in TARGET_LANGUAGES:
             self.target_lang_combo.addItem(name, code)
@@ -107,7 +106,7 @@ class MainWindow(QMainWindow):
 
         control_layout.addStretch()
 
-        self.start_btn = QPushButton("Start")
+        self.start_btn = QPushButton("开始")
         self.start_btn.setStyleSheet(
             "QPushButton { background-color: #4CAF50; color: white; "
             "padding: 6px 20px; font-weight: bold; border-radius: 4px; }"
@@ -118,9 +117,8 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(control_group)
 
-        # --- Audio level ---
         level_layout = QHBoxLayout()
-        level_layout.addWidget(QLabel("Audio Level:"))
+        level_layout.addWidget(QLabel("音频电平:"))
         self.level_bar = QProgressBar()
         self.level_bar.setMaximum(100)
         self.level_bar.setTextVisible(False)
@@ -128,11 +126,9 @@ class MainWindow(QMainWindow):
         level_layout.addWidget(self.level_bar)
         main_layout.addLayout(level_layout)
 
-        # --- Subtitle display ---
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        # Original text
-        orig_group = QGroupBox("Original")
+        orig_group = QGroupBox("原文")
         orig_layout = QVBoxLayout(orig_group)
         self.original_text = QTextEdit()
         self.original_text.setReadOnly(True)
@@ -140,8 +136,7 @@ class MainWindow(QMainWindow):
         orig_layout.addWidget(self.original_text)
         splitter.addWidget(orig_group)
 
-        # Translated text
-        trans_group = QGroupBox("Translation")
+        trans_group = QGroupBox("译文")
         trans_layout = QVBoxLayout(trans_group)
         self.translated_text = QTextEdit()
         self.translated_text.setReadOnly(True)
@@ -155,7 +150,7 @@ class MainWindow(QMainWindow):
     def _setup_statusbar(self):
         self.statusbar = QStatusBar()
         self.setStatusBar(self.statusbar)
-        self.status_label = QLabel("Ready")
+        self.status_label = QLabel("就绪")
         self.statusbar.addWidget(self.status_label)
 
     def _connect_signals(self):
@@ -172,15 +167,15 @@ class MainWindow(QMainWindow):
         for dev in devices:
             label = f"[{dev['index']}] {dev['name']}"
             if dev["is_system_audio"]:
-                label += " (System)"
+                label += " (系统音频)"
             elif dev["is_microphone"]:
-                label += " (Mic)"
+                label += " (麦克风)"
             self.device_combo.addItem(label, dev["index"])
 
     def _toggle_start(self):
         if self.pipeline.is_running:
             self.pipeline.stop()
-            self.start_btn.setText("Start")
+            self.start_btn.setText("开始")
             self.start_btn.setStyleSheet(
                 "QPushButton { background-color: #4CAF50; color: white; "
                 "padding: 6px 20px; font-weight: bold; border-radius: 4px; }"
@@ -188,17 +183,26 @@ class MainWindow(QMainWindow):
         else:
             idx = self.device_combo.currentData()
             if idx is None:
-                QMessageBox.warning(self, "Error", "Please select an audio device.")
+                QMessageBox.warning(self, "提示", "请先选择一个音频设备。")
                 return
             self.pipeline.set_device(idx)
             source = self.source_lang_combo.currentData()
             target = self.target_lang_combo.currentData()
             self.pipeline.start(source_lang=source, target_lang=target)
-            self.start_btn.setText("Stop")
+            self.start_btn.setText("停止")
             self.start_btn.setStyleSheet(
                 "QPushButton { background-color: #f44336; color: white; "
                 "padding: 6px 20px; font-weight: bold; border-radius: 4px; }"
             )
+
+    STATUS_MAP = {
+        "Initializing...": "正在初始化...",
+        "Loading ASR model...": "正在加载语音识别模型...",
+        "Initializing translator...": "正在初始化翻译引擎...",
+        "Running": "运行中",
+        "Paused": "已暂停",
+        "Stopped": "已停止",
+    }
 
     @pyqtSlot(str, str)
     def _on_subtitle(self, original: str, translated: str):
@@ -211,18 +215,18 @@ class MainWindow(QMainWindow):
         self.translated_text.append(f"[{ts}] {translated}")
         self.translated_text.moveCursor(QTextCursor.MoveOperation.End)
 
-        # Update floating window
         if self.floating_window and self.floating_window.isVisible():
             self.floating_window.update_subtitle(original, translated)
 
     @pyqtSlot(str)
     def _on_status(self, status: str):
-        self.status_label.setText(status)
+        display = self.STATUS_MAP.get(status, status)
+        self.status_label.setText(display)
 
     @pyqtSlot(str)
     def _on_error(self, error: str):
-        QMessageBox.critical(self, "Error", error)
-        self.start_btn.setText("Start")
+        QMessageBox.critical(self, "错误", error)
+        self.start_btn.setText("开始")
 
     @pyqtSlot(float)
     def _on_audio_level(self, rms: float):
@@ -239,7 +243,7 @@ class MainWindow(QMainWindow):
             else:
                 self.floating_window.show()
         except ImportError:
-            QMessageBox.information(self, "Info", "Floating subtitle module not available yet.")
+            QMessageBox.information(self, "提示", "悬浮字幕模块尚未安装。")
 
     def _open_settings(self):
         try:
@@ -248,23 +252,23 @@ class MainWindow(QMainWindow):
             if dlg.exec():
                 config_manager.save_config()
         except ImportError:
-            QMessageBox.information(self, "Info", "Settings module not available yet.")
+            QMessageBox.information(self, "提示", "设置模块尚未安装。")
 
     def _export_subtitles(self):
         if not self._history:
-            QMessageBox.information(self, "Info", "No subtitles to export.")
+            QMessageBox.information(self, "提示", "暂无字幕可导出。")
             return
         try:
             from subtitle.exporter import SubtitleExporter
             path, _ = QFileDialog.getSaveFileName(
-                self, "Export Subtitles", "subtitles.srt",
-                "SRT Files (*.srt);;VTT Files (*.vtt);;Text Files (*.txt)"
+                self, "导出字幕", "subtitles.srt",
+                "SRT 文件 (*.srt);;VTT 文件 (*.vtt);;文本文件 (*.txt)"
             )
             if path:
                 SubtitleExporter.export(self._history, path)
-                QMessageBox.information(self, "Success", f"Exported to {path}")
+                QMessageBox.information(self, "成功", f"字幕已导出至 {path}")
         except ImportError:
-            QMessageBox.information(self, "Info", "Export module not available yet.")
+            QMessageBox.information(self, "提示", "导出模块尚未安装。")
 
     def closeEvent(self, event):
         self.pipeline.close()
